@@ -1,5 +1,6 @@
-# Face Detection using Haar Cascades with OpenCV and Matplotlib
-
+# Exp 12- Face Detection using Haar Cascades with OpenCV and Matplotlib
+## Name: Harish S
+## Reg no: 212224240052
 ## Aim
 
 To write a Python program using OpenCV to perform the following image manipulations:  
@@ -17,39 +18,194 @@ iv) Perform face detection with label in real-time video from webcam.
 
 ## Algorithm
 
-### I) Load and Display Images
+```
+import numpy as np
+import cv2 
+import matplotlib.pyplot as plt
+model = cv2.imread('image_01.jpeg',0)
+withglass = cv2.imread('image_02.jpeg',0)
+group = cv2.imread('image_03.jpeg',0)
+plt.figure(figsize=(20,10))
+plt.subplot(131);plt.imshow(cv2.resize(model, (1000, 1000)),cmap='gray');plt.title("Model")
+plt.subplot(132);plt.imshow(cv2.resize(withglass, (1000, 1000)),cmap='gray');plt.title("Model with glass")
+plt.subplot(133);plt.imshow(cv2.resize(group, (1000, 1000)),cmap='gray');plt.title("Group")
+plt.show()
+```
+## Cascade Files
+```
+face_cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
 
-- Step 1: Import necessary packages: `numpy`, `cv2`, `matplotlib.pyplot`  
-- Step 2: Load grayscale images using `cv2.imread()` with flag `0`  
-- Step 3: Display images using `plt.imshow()` with `cmap='gray'`
+face_cascade = cv2.CascadeClassifier(face_cascade_path)
 
-### II) Load Haar Cascade Classifiers
+if face_cascade.empty():
+    raise RuntimeError(
+        f"Face cascade could not be loaded.\nPath: {face_cascade_path}"
+    )
 
-- Step 1: Load face and eye cascade XML files 
-### III) Perform Face Detection in Images
+print("Face cascade loaded successfully!")
+print(face_cascade_path)
+```
+## Face Detection Model with Glass
+```
+def detect_face(img):
+    face_img = img.copy()
 
-- Step 1: Define a function `detect_face()` that copies the input image  
-- Step 2: Use `face_cascade.detectMultiScale()` to detect faces  
-- Step 3: Draw white rectangles around detected faces with thickness 10  
-- Step 4: Return the processed image with rectangles  
+    # Convert to grayscale if the image is colored
+    if len(face_img.shape) == 3:
+        gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = face_img
 
-### IV) Perform Eye Detection in Images
+    face_rects = face_cascade.detectMultiScale(
+        gray,
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(30, 30)
+    )
 
-- Step 1: Define a function `detect_eyes()` that copies the input image  
-- Step 2: Use `eye_cascade.detectMultiScale()` to detect eyes  
-- Step 3: Draw white rectangles around detected eyes with thickness 10  
-- Step 4: Return the processed image with rectangles  
+    for (x, y, w, h) in face_rects:
+        cv2.rectangle(
+            face_img,
+            (x, y),
+            (x + w, y + h),
+            (255, 255, 255),
+            3
+        )
 
-### V) Display Detection Results on Images
+    return face_img
+result = detect_face(withglass)
 
-- Step 1: Call `detect_face()` or `detect_eyes()` on loaded images  
-- Step 2: Use `plt.imshow()` with `cmap='gray'` to display images with detected regions highlighted  
+plt.figure(figsize=(10, 8))
+plt.imshow(result, cmap='gray')
+plt.title("Face Detection - Model with Glass")
+plt.axis('off')
+plt.show()
 
-### VI) Perform Face Detection on Real-Time Webcam Video
+```
+## Face Detection
+```
+result = detect_face(model)
 
-- Step 1: Capture video from webcam using `cv2.VideoCapture(0)`  
-- Step 2: Loop to continuously read frames from webcam  
-- Step 3: Apply `detect_face()` function on each frame  
-- Step 4: Display the video frame with rectangles around detected faces  
-- Step 5: Exit loop and close windows when ESC key (key code 27) is pressed  
-- Step 6: Release video capture and destroy all OpenCV windows  
+plt.figure(figsize=(10, 8))
+plt.imshow(result, cmap='gray')
+plt.title("Face Detection - Model")
+plt.axis('off')
+plt.show()
+```
+## Eye Detection - Model with Glass
+```
+def detect_eyes(img):
+    face_img = img.copy()
+
+    # Convert to grayscale
+    if len(face_img.shape) == 3:
+        gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = face_img
+
+    # First detect faces
+    faces = face_cascade.detectMultiScale(
+        gray,
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(30, 30)
+    )
+
+    # Detect eyes inside each detected face
+    for (x, y, w, h) in faces:
+
+        roi_gray = gray[y:y+h, x:x+w]
+
+        eyes = eye_cascade.detectMultiScale(
+            roi_gray,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(15, 15)
+        )
+
+        for (ex, ey, ew, eh) in eyes:
+
+            cv2.rectangle(
+                face_img,
+                (x + ex, y + ey),
+                (x + ex + ew, y + ey + eh),
+                (255, 255, 255),
+                2
+            )
+
+    return face_img
+result = detect_eyes(withglass)
+
+plt.figure(figsize=(10, 8))
+plt.imshow(result, cmap='gray')
+plt.title("Eye Detection - Model with Glass")
+plt.axis('off')
+plt.show()
+```
+## Video Face Detection
+```
+cap = cv2.VideoCapture(0)
+
+if not cap.isOpened():
+    raise RuntimeError(
+        "Could not open the camera. "
+        "Check whether your webcam is connected or being used by another application."
+    )
+
+plt.ion()
+
+fig, ax = plt.subplots(figsize=(10, 7))
+
+ret, frame = cap.read()
+
+if not ret:
+    cap.release()
+    plt.close(fig)
+    raise RuntimeError("Could not read the first frame from the camera.")
+
+frame = detect_face(frame)
+
+im = ax.imshow(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+ax.set_title("Video Face Detection")
+ax.axis('off')
+
+while plt.fignum_exists(fig.number):
+
+    ret, frame = cap.read()
+
+    if not ret:
+        print("Could not read frame from camera.")
+        break
+
+    frame = detect_face(frame)
+
+    im.set_data(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+
+    plt.pause(0.01)
+
+cap.release()
+plt.ioff()
+plt.close(fig)
+```
+## Output
+## Original Image
+<img width="440" height="418" alt="download" src="https://github.com/user-attachments/assets/3193166f-a09b-460b-ab6e-eac57e54d9b8" />
+
+## Cascade Files
+<img width="345" height="418" alt="download" src="https://github.com/user-attachments/assets/c6bd3ed1-3504-4677-8914-324e2ac23e92" />
+
+## Face Detection Model with Glass
+<img width="440" height="418" alt="download" src="https://github.com/user-attachments/assets/62ff992a-2278-4949-943d-d5e6235495f9" />
+
+## Face Detection
+<img width="345" height="418" alt="download" src="https://github.com/user-attachments/assets/9ba3b9d1-d6ce-48e5-9f10-a452952fe3d5" />
+
+## Eye Detection - Model with Glass
+<img width="440" height="418" alt="download" src="https://github.com/user-attachments/assets/bb03e26a-d15a-49f8-845c-de415daaf351" />
+
+## Video Face Detection
+<img width="549" height="433" alt="download" src="https://github.com/user-attachments/assets/327af3c1-a2b4-4fef-9f26-7580679c2e70" />
+
+
+## Result :
+Thus, to write a Python program using OpenCV to perform image manipulations for the given objectives is executed sucessfully.
